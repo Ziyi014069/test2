@@ -17,6 +17,9 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+//取得驗證碼
+Route::get('GetCaptcha', [App\Http\Controllers\Admin\LoginController::class, 'pictureBack']);
+
 Route::prefix('user')->group(function() {
     Route::get('register', function () {
         return view('open_app');
