@@ -1,0 +1,25 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| is assigned the "api" middleware group. Enjoy building your API!
+|
+*/
+
+//產生基本crud
+Route::post('/fGenderBaseCode', [App\Http\Controllers\BaseCodeController::class, 'fGenderBaseCode']);
+
+//產生後台 route
+Route::post('/fGenderAllRouteForAdmin', [App\Http\Controllers\BaseCodeController::class, 'fGenderAllRouteForAdmin']);
+//產生後台 route 單一
+Route::post('/fGenderAllRouteForAdmin/{name}', [App\Http\Controllers\BaseCodeController::class, 'fGenderAllRouteForAdminByOne']);
+
+

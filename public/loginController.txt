@@ -1,0 +1,141 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+
+use App\Models\Base;
+use App\Packages\Jwt;
+use Hash;
+use Illuminate\Support\Facades\Mail;
+
+use App;
+use Auth;
+use Validator;
+use Redirect;
+
+class BaseController extends Controller
+{
+    public function fLogin(Request $request){
+
+        $input = json_decode($request->getContent(),true);
+        // $input = $request->all();
+
+        if(empty($input['account']) || !filter_var($input['account'], FILTER_VALIDATE_EMAIL)  ){
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }else if(empty($input['password'])){
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }else if(empty($input['captcha'])){
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }else if(empty($input['codeToken'])){
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }
+
+        //驗證碼
+        $captcha = Jwt::verifyToken($input['codeToken']);
+        if($input['captcha'] != $captcha['code'] ||  $captcha['expireTime'] < time() ){
+            return ['result' => false,, 'message' => '驗證碼錯誤'];
+        }
+
+        $aBase = Base::where('account','=',$input['account'])->first();
+        if (!empty($aBase)) {
+            if (Hash::check($input['password'], $aBase['password'])) {
+                //success
+                $aData=[
+                    'id' => $aBase['accountId'],
+                    'name' => $aBase['accountName'],
+                    'account' => $aBase['account'],
+                    // 'avatar' => $aBase['avatar'],
+                    'expireTime' => time() + 7*24*60*60,
+                ];
+                $token = Jwt::getToken($aData);
+
+                if($token){
+                    $aData['token'] = $token;
+                    return ['result' => true,, 'message' => 'success','data' => $aData];
+                }else{
+                    return ['result' => false,, 'message' => '帳號密碼錯誤'];
+                }
+
+            }else{
+                return ['result' => false,, 'message' => '帳號密碼錯誤'];
+            }
+        }else{
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }
+    }
+
+    //修改密碼
+    public function changePassword(Request $request)
+    {
+        //uid
+        $token = Jwt::verifyToken($request->bearerToken());
+
+        $input = $request->all();
+
+        if(empty($input['oldPassword'])){
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }else if(empty($input['password'])){
+            return ['result' => false,, 'message' => '帳號密碼錯誤'];
+        }
+
+
+        $Base = Base::where('account','=',$token['account'])->first();
+        if ($Base) {
+            if (Hash::check($input['oldPassword'], $Base['password'])) {
+
+                $aData = [
+                    'password' => Hash::make($input['password'])
+                ];
+                Base::where('account','=',$token['account'])->update($aData);
+                // $Base->password = Hash::make($input['password']);
+
+                // $Base->save();
+
+                return ['result' => true, , 'message' => 'success'];
+            } else {
+                return ['result' => false, , 'message' => '舊密碼錯誤'];
+            }
+        } else {
+            return ['result' => false, , 'message' => '帳號密碼錯誤'];
+        }
+    }
+
+    //取得驗證碼
+    public function pictureBack(Request $request)
+    {
+        $im = imagecreatetruecolor(100, 28);
+        $text_color = imagecolorallocate($im, 233, 14, 91);
+        $path = resource_path('css/arial.ttf');
+        $nums = [];
+        for ($i = 0; $i < 4; $i++) {
+            $nums[] = rand(0, 9);
+        }
+        for ($i = 0; $i < 40; $i++) {
+            $color = imagecolorallocate($im, rand(200, 240), 14, 91);
+            imagefilledellipse($im, rand(0, 100), rand(0, 28), rand(0, 2), rand(0, 5), $color);
+        }
+        imagettftext($im, 18, rand(-12, 12), 5, 22,  $text_color, $path, $nums[0]);
+        imagettftext($im, 18, rand(-12, 12), 30, 22, $text_color, $path, $nums[1]);
+        imagettftext($im, 18, rand(-12, 12), 55, 22, $text_color, $path, $nums[2]);
+        imagettftext($im, 18, rand(-12, 12), 80, 22, $text_color, $path, $nums[3]);
+        ob_start();
+        imagejpeg($im);
+        $img = ob_get_clean();
+        ob_end_clean();
+        imagedestroy($im);
+
+        $aData=[
+                    'code' => implode($nums),
+                    'expireTime' => time() + 5*60,
+                ];
+        $token = Jwt::getToken($aData);
+
+        return ['result' => true, 'message' => 'success','data' => [
+                'img' => base64_encode($img),
+                'codeToken' => $token
+            ]];
+
+    }
+}
