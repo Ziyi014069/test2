@@ -20,6 +20,12 @@ Route::get('/', function () {
 //取得驗證碼
 Route::get('GetCaptcha', [App\Http\Controllers\Admin\LoginController::class, 'pictureBack']);
 
+Route::get('getDatas', function () {
+    return [
+        "2023/07/14"=> date('yyyy-mm-dd')
+    ];
+});
+
 Route::prefix('user')->group(function() {
     Route::get('register', function () {
         return view('open_app');
